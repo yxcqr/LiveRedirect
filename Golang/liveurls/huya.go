@@ -1,5 +1,5 @@
 // Package liveurls
-// @Time:2024/01/12 22:00
+// @Time:2023/02/05 23:34
 // @File:huya.go
 // @SoftWare:Goland
 // @Author:feiyang
@@ -8,16 +8,16 @@
 package liveurls
 
 import (
-	"Golang/utils"
-	"bufio"
+	"bytes"
+	"crypto/md5"
 	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"github.com/tidwall/gjson"
 	"io"
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -25,73 +25,121 @@ import (
 )
 
 type Huya struct {
-	Rid     string
-	Cdn     string
-	CdnType string
+	Rid   string
+	Media string
+	Type  string
+	Cdn   string
 }
 
-func getJS() string {
-	filePath := "res/huya.js"
-	file, _ := os.Open(filePath)
-	defer file.Close()
-	var lines []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+type Data struct {
+}
+
+type Payload struct {
+	AppId   int    `json:"appId"`
+	ByPass  int    `json:"byPass"`
+	Context string `json:"context"`
+	Version string `json:"version"`
+	Data    Data   `json:"data"`
+}
+
+type ResponseData struct {
+	Data struct {
+		Uid string `json:"uid"`
+	} `json:"data"`
+}
+
+func getContent(apiUrl string) ([]byte, error) {
+	payload := Payload{
+		AppId:   5002,
+		ByPass:  3,
+		Context: "",
+		Version: "2.4",
+		Data:    Data{},
 	}
-	jstr := strings.Join(lines, "\n")
-	return jstr
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", apiUrl, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(jsonPayload)))
+	req.Header.Set("upgrade-insecure-requests", "1")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return io.ReadAll(resp.Body)
 }
 
-func parseAntiCode(sStreamName, sFlvAntiCode string) string {
-	var jsUtil = &utils.JsUtil{}
-	c := strings.Split(sFlvAntiCode, "&")
-	n := make(map[string]string)
-	for _, str := range c {
-		temp := strings.Split(str, "=")
-		if len(temp) > 1 && temp[1] != "" {
-			n[temp[0]] = temp[1]
+func getUid() string {
+	content, _ := getContent("https://udblgn.huya.com/web/anonymousLogin")
+	var responseData ResponseData
+	json.Unmarshal(content, &responseData)
+	uid := responseData.Data.Uid
+	return uid
+}
+
+var uid, _ = strconv.Atoi(getUid())
+
+func getUUID() int64 {
+	now := time.Now().UnixNano() / int64(time.Millisecond)
+	randNum := rand.Intn(1000)
+	return ((now % 10000000000 * 1000) + int64(randNum)) % 4294967295
+}
+
+func processAntiCode(antiCode string, uid int, streamName string) string {
+	q, _ := url.ParseQuery(antiCode)
+	q.Set("t", "100")
+	q.Set("ctype", "huya_live")
+	q.Set("wsTime", strconv.FormatInt(time.Now().Unix()+21600, 16))
+	q.Set("ver", "1")
+	q.Set("sv", "2110211124")
+	seqId := strconv.Itoa(uid + int(time.Now().UnixNano()/int64(time.Millisecond)))
+	q.Set("seqid", seqId)
+	q.Set("uid", strconv.Itoa(uid))
+	q.Set("uuid", strconv.FormatInt(getUUID(), 10))
+	h := md5.New()
+	h.Write([]byte(seqId + "|" + q.Get("ctype") + "|" + q.Get("t")))
+	ss := hex.EncodeToString(h.Sum(nil))
+	fm, _ := base64.StdEncoding.DecodeString(q.Get("fm"))
+	q.Set("fm", strings.Replace(strings.Replace(strings.Replace(strings.Replace(string(fm), "$0", q.Get("uid"), -1), "$1", streamName, -1), "$2", ss, -1), "$3", q.Get("wsTime"), -1))
+	h.Reset()
+	h.Write([]byte(q.Get("fm")))
+	q.Set("wsSecret", hex.EncodeToString(h.Sum(nil)))
+	q.Del("fm")
+	if _, ok := q["txyp"]; ok {
+		q.Del("txyp")
+	}
+	return q.Encode()
+}
+
+func format(liveArr map[string]any, uid int) map[string]any {
+	streamInfo := map[string]any{"flv": make(map[string]string), "hls": make(map[string]string)}
+	cdnType := map[string]string{"HY": "hycdn", "AL": "alicdn", "TX": "txcdn", "HW": "hwcdn", "HS": "hscdn", "WS": "wscdn"}
+	for _, s := range liveArr["roomInfo"].(map[string]any)["tLiveInfo"].(map[string]any)["tLiveStreamInfo"].(map[string]any)["vStreamInfo"].(map[string]any)["value"].([]any) {
+		sMap := s.(map[string]any)
+		if sMap["sFlvUrl"] != nil {
+			streamInfo["flv"].(map[string]string)[cdnType[sMap["sCdnType"].(string)]] = sMap["sFlvUrl"].(string) + "/" + sMap["sStreamName"].(string) + "." + sMap["sFlvUrlSuffix"].(string) + "?" + processAntiCode(sMap["sFlvAntiCode"].(string), uid, sMap["sStreamName"].(string))
+		}
+		if sMap["sHlsUrl"] != nil {
+			streamInfo["hls"].(map[string]string)[cdnType[sMap["sCdnType"].(string)]] = sMap["sHlsUrl"].(string) + "/" + sMap["sStreamName"].(string) + "." + sMap["sHlsUrlSuffix"].(string) + "?" + processAntiCode(sMap["sHlsAntiCode"].(string), uid, sMap["sStreamName"].(string))
 		}
 	}
-
-	// Randomly generating uid
-	uid := int64(1462220000000) + rand.Int63n(1145142333)
-	currentTime := time.Now().UnixNano() / int64(time.Millisecond)
-	wsTime := strconv.FormatInt(currentTime/1000, 16)
-	seqid := uid + currentTime + 216000000 // 216000000 = 30*1000*60*60 = 30h
-
-	// Generating wsSecret
-	fm, _ := n["fm"]
-	fmDecoded, _ := url.QueryUnescape(fm)
-	fmBase64Decoded, _ := base64.StdEncoding.DecodeString(fmDecoded)
-	ctype := n["ctype"]
-	if ctype == "" {
-		ctype = "huya_live"
-	}
-	var funcContent []string
-	funcContent = append(append(funcContent, getJS()), "Oe")
-	oe := jsUtil.JsRun(funcContent, strings.Join([]string{strconv.FormatInt(seqid, 10), ctype, "100"}, "|"))
-	r := strings.ReplaceAll(string(fmBase64Decoded), "$0", strconv.FormatInt(uid, 10))
-	r = strings.ReplaceAll(r, "$1", sStreamName)
-	r = strings.ReplaceAll(r, "$2", fmt.Sprintf("%s", oe))
-	r = strings.ReplaceAll(r, "$3", wsTime)
-	wsSecret := fmt.Sprintf("%s", jsUtil.JsRun(funcContent, r))
-
-	var sb strings.Builder
-	sb.WriteString("wsSecret=" + wsSecret + "&wsTime=" + wsTime +
-		"&seqid=" + strconv.FormatInt(seqid, 10) +
-		"&ctype=" + ctype +
-		"&ver=1&fs=" + n["fs"] +
-		"&sphdcdn=" + n["sphdcdn"] +
-		"&sphdDC=" + n["sphdDC"] +
-		"&sphd=" + n["sphd"] +
-		"&exsphd=" + n["exsphd"] +
-		"&dMod=mseh-32&sdkPcdn=1_1&u=" + strconv.FormatInt(uid, 10) +
-		"&t=100&sv=2401190627&sdk_sid=" + strconv.FormatInt(currentTime, 10) + "&ratio=0")
-	return sb.String()
+	return streamInfo
 }
 
 func (h *Huya) GetLiveUrl() any {
+	var liveArr map[string]any
 	liveurl := "https://m.huya.com/" + h.Rid
 	client := &http.Client{}
 	r, _ := http.NewRequest("GET", liveurl, nil)
@@ -99,41 +147,44 @@ func (h *Huya) GetLiveUrl() any {
 	r.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	resp, _ := client.Do(r)
 	defer resp.Body.Close()
-	result, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil
-	}
-	reg := regexp.MustCompile("<script> window.HNF_GLOBAL_INIT = (.*)</script>")
-	matches := reg.FindStringSubmatch(string(result))
-	if matches == nil || len(matches) < 2 {
-		return nil
-	}
-	return h.extractInfo(matches[1])
-}
+	body, _ := io.ReadAll(resp.Body)
+	str := string(body)
+	freg := regexp.MustCompile(`(?i)<script> window.HNF_GLOBAL_INIT = (.*) </script>`)
+	res := freg.FindStringSubmatch(str)
 
-func (h *Huya) extractInfo(content string) any {
-	parse := gjson.Parse(content)
-	streamInfo := parse.Get("roomInfo.tLiveInfo.tLiveStreamInfo.vStreamInfo.value")
-	if len(streamInfo.Array()) == 0 {
-		return nil
-	}
-	var cdnSlice []string
-	var finalurl string
-	streamInfo.ForEach(func(key, value gjson.Result) bool {
-		var cdnType = gjson.Get(value.String(), "sCdnType").String()
-		cdnSlice = append(cdnSlice, cdnType)
-		if cdnType == h.Cdn {
-			urlStr := fmt.Sprintf("%s/%s.%s?%s",
-				value.Get("sFlvUrl").String(),
-				value.Get("sStreamName").String(),
-				value.Get("sFlvUrlSuffix").String(),
-				parseAntiCode(value.Get("sStreamName").String(), value.Get("sFlvAntiCode").String()))
-			finalurl = strings.Replace(urlStr, "http://", "https://", 1)
+	json.Unmarshal([]byte(res[1]), &liveArr)
+	var mediaurl any
+	if roomInfo, ok := liveArr["roomInfo"].(map[string]any); ok {
+		if liveStatus, ok := roomInfo["eLiveStatus"].(float64); ok && liveStatus == 2 {
+			realurl := format(liveArr, uid)
+			if h.Type == "display" {
+				return realurl
+			}
+			for k, v := range realurl {
+				switch k {
+				case h.Media:
+					if urlarr, ok := v.(map[string]string); ok {
+						for k, v := range urlarr {
+							switch k {
+							case h.Cdn:
+								mediaurl = v
+							}
+						}
+					}
+				}
+			}
+
+		} else if liveStatus, ok := roomInfo["eLiveStatus"].(float64); ok && liveStatus == 3 {
+			if roomProfile, ok := liveArr["roomProfile"].(map[string]any); ok {
+				if liveLineUrl, ok := roomProfile["liveLineUrl"].(string); ok {
+					decodedLiveLineUrl, _ := base64.StdEncoding.DecodeString(liveLineUrl)
+					mediaurl = "http:" + string(decodedLiveLineUrl)
+				}
+			}
+		} else {
+			mediaurl = nil
 		}
-		return true
-	})
-	if h.CdnType == "display" {
-		return cdnSlice
 	}
-	return finalurl
+	return mediaurl
+
 }
