@@ -8,14 +8,16 @@
 package liveurls
 
 import (
-	"crypto/md5"
+	"Golang/utils"
+	"bufio"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"github.com/tidwall/gjson"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,27 +30,65 @@ type Huya struct {
 	CdnType string
 }
 
-func MD5(str []byte) string {
-	h := md5.New()
-	h.Write(str)
-	return hex.EncodeToString(h.Sum(nil))
+func getJS() string {
+	filePath := "res/huya.js"
+	file, _ := os.Open(filePath)
+	defer file.Close()
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	jstr := strings.Join(lines, "\n")
+	return jstr
 }
 
-func parseAntiCode(antiCode, streamName string) string {
-	qr, _ := url.ParseQuery(antiCode)
-	t := "0"
-	f := strconv.FormatInt(time.Now().UnixNano()/100, 10)
-	wsTime := qr.Get("wsTime")
+func parseAntiCode(sStreamName, sFlvAntiCode string) string {
+	var jsUtil = &utils.JsUtil{}
+	c := strings.Split(sFlvAntiCode, "&")
+	n := make(map[string]string)
+	for _, str := range c {
+		temp := strings.Split(str, "=")
+		if len(temp) > 1 && temp[1] != "" {
+			n[temp[0]] = temp[1]
+		}
+	}
 
-	decodeString, _ := base64.StdEncoding.DecodeString(qr.Get("fm"))
-	fm := string(decodeString)
-	fm = strings.ReplaceAll(fm, "$0", t)
-	fm = strings.ReplaceAll(fm, "$1", streamName)
-	fm = strings.ReplaceAll(fm, "$2", f)
-	fm = strings.ReplaceAll(fm, "$3", wsTime)
+	// Randomly generating uid
+	uid := int64(1462220000000) + rand.Int63n(1145142333)
+	currentTime := time.Now().UnixNano() / int64(time.Millisecond)
+	wsTime := strconv.FormatInt(currentTime/1000, 16)
+	seqid := uid + currentTime + 216000000 // 216000000 = 30*1000*60*60 = 30h
 
-	return fmt.Sprintf("wsSecret=%s&wsTime=%s&u=%s&seqid=%s&txyp=%s&fs=%s&sphdcdn=%s&sphdDC=%s&sphd=%s&u=0&t=100&ratio=0",
-		MD5([]byte(fm)), wsTime, t, f, qr.Get("txyp"), qr.Get("fs"), qr.Get("sphdcdn"), qr.Get("sphdDC"), qr.Get("sphd"))
+	// Generating wsSecret
+	fm, _ := n["fm"]
+	fmDecoded, _ := url.QueryUnescape(fm)
+	fmBase64Decoded, _ := base64.StdEncoding.DecodeString(fmDecoded)
+	ctype := n["ctype"]
+	if ctype == "" {
+		ctype = "huya_live"
+	}
+	var funcContent []string
+	funcContent = append(append(funcContent, getJS()), "Oe")
+	oe := jsUtil.JsRun(funcContent, strings.Join([]string{strconv.FormatInt(seqid, 10), ctype, "100"}, "|"))
+	r := strings.ReplaceAll(string(fmBase64Decoded), "$0", strconv.FormatInt(uid, 10))
+	r = strings.ReplaceAll(r, "$1", sStreamName)
+	r = strings.ReplaceAll(r, "$2", fmt.Sprintf("%s", oe))
+	r = strings.ReplaceAll(r, "$3", wsTime)
+	wsSecret := fmt.Sprintf("%s", jsUtil.JsRun(funcContent, r))
+
+	var sb strings.Builder
+	sb.WriteString("wsSecret=" + wsSecret + "&wsTime=" + wsTime +
+		"&seqid=" + strconv.FormatInt(seqid, 10) +
+		"&ctype=" + ctype +
+		"&ver=1&fs=" + n["fs"] +
+		"&sphdcdn=" + n["sphdcdn"] +
+		"&sphdDC=" + n["sphdDC"] +
+		"&sphd=" + n["sphd"] +
+		"&exsphd=" + n["exsphd"] +
+		"&dMod=mseh-32&sdkPcdn=1_1&u=" + strconv.FormatInt(uid, 10) +
+		"&t=100&sv=2401190627&sdk_sid=" + strconv.FormatInt(currentTime, 10) + "&ratio=0")
+	return sb.String()
 }
 
 func (h *Huya) GetLiveUrl() any {
@@ -87,7 +127,7 @@ func (h *Huya) extractInfo(content string) any {
 				value.Get("sFlvUrl").String(),
 				value.Get("sStreamName").String(),
 				value.Get("sFlvUrlSuffix").String(),
-				parseAntiCode(value.Get("sFlvAntiCode").String(), value.Get("sStreamName").String()))
+				parseAntiCode(value.Get("sStreamName").String(), value.Get("sFlvAntiCode").String()))
 			finalurl = strings.Replace(urlStr, "http://", "https://", 1)
 		}
 		return true
