@@ -70,7 +70,6 @@ http://你的IP:35455/douyu/xxxxx(?stream=flv)
 http://你的IP:35455/bilibili/xxxxxx(?platform=h5&line=first&quality=10000)
 ```
 ## **虎牙`(huya.com/)xxxxxx`：**  
-**注意，huya现在已经闭源，只提供最新的Docker镜像更新，使用方法依旧如下：**
 ### 1，查看可用CDN：
 ```
 http://你的IP:35455/huya/xxxxx?type=display
