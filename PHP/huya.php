@@ -116,27 +116,27 @@ if (array_key_exists("exceptionType", $realdata)) {
     if ($media == "flv") {
         switch ($cdn) {
             case $cdn:
-                $mediaurl = $realurl["flv"][$cdn];
+                $mediaurl = str_replace("http://", "https://", $realurl["flv"][$cdn]);
                 break;
             default:
-                $mediaurl = $realurl["flv"]["hwcdn"];
+                $mediaurl = str_replace("http://", "https://", $realurl["flv"]["hwcdn"]);
                 break;
         }
     }
     if ($media == "hls") {
         switch ($cdn) {
             case $cdn:
-                $mediaurl = $realurl["hls"][$cdn];
+                $mediaurl = str_replace("http://", "https://", $realurl["hls"][$cdn]);
                 break;
             default:
-                $mediaurl = $realurl["hls"]["hwcdn"];
+                $mediaurl = str_replace("http://", "https://", $realurl["hls"]["hwcdn"]);
                 break;
         }
     }
     header('location:' . $mediaurl);
     exit();
 } elseif ($realdata["roomInfo"]["eLiveStatus"] == 3) {
-    header('location:' . "http:" . base64_decode($realdata["roomProfile"]["liveLineUrl"]));
+    header('location:' . "https:" . base64_decode($realdata["roomProfile"]["liveLineUrl"]));
     exit();
 } else {
     header('location:' . $mediaurl);
