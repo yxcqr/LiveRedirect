@@ -83,6 +83,8 @@ func getContent(apiUrl string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
+var streamInfo = map[string]any{"flv": make(map[string]string), "hls": make(map[string]string)}
+
 func getUid() string {
 	content, _ := getContent("https://udblgn.huya.com/web/anonymousLogin")
 	var responseData ResponseData
@@ -131,7 +133,6 @@ func processAntiCode(antiCode string, uid int, streamName string) string {
 }
 
 func format(jsonStr string, uid int) map[string]any {
-	streamInfo := map[string]any{"flv": make(map[string]string), "hls": make(map[string]string)}
 	cdnType := map[string]string{"HY": "hycdn", "AL": "alicdn", "TX": "txcdn", "HW": "hwcdn", "HS": "hscdn", "WS": "wscdn"}
 	ojsonStr := gjson.Get(jsonStr, "roomInfo.tLiveInfo.tLiveStreamInfo.vStreamInfo").String()
 	fmt.Println(gjson.Get(ojsonStr, "value"))
@@ -169,7 +170,7 @@ func (h *Huya) GetLiveUrl() any {
 	str := string(body)
 	freg := regexp.MustCompile(`(?i)<script>[\s\S]window.HNF_GLOBAL_INIT = ([\s\S]*?) </script>`)
 	res := freg.FindStringSubmatch(str)
-	if len(res) > 1 {
+	if len(res) > 1 && !strings.Contains(res[1], "\"exceptionType\":0") {
 		jsonStr := res[1]
 		liveStatus := gjson.Get(jsonStr, "roomInfo.eLiveStatus").Int()
 		var mediaurl any
@@ -200,6 +201,52 @@ func (h *Huya) GetLiveUrl() any {
 			mediaurl = nil
 		}
 		return mediaurl
+	} else if strings.Contains(res[1], "\"exceptionType\":0") {
+		var h5info any
+		ostr, _ := getContent("https://www.huya.com/" + h.Rid)
+		nstr := string(ostr)
+		lreg := regexp.MustCompile(`(?i)<script>[\s\S]*hyPlayerConfig =[\s\S]*stream: ([\s\S]*)};[\s\S]*window.TT_LIVE_TIMING`)
+		lres := lreg.FindStringSubmatch(nstr)
+		gjson.Get(lres[1], "data").ForEach(func(key, value gjson.Result) bool {
+			if strings.Contains(value.String(), "gameStreamInfoList") {
+				cdnType := map[string]string{"HY": "hycdn", "AL": "alicdn", "TX": "txcdn", "HW": "hwcdn", "HS": "hscdn", "WS": "wscdn"}
+				gjson.Get(value.String(), "gameStreamInfoList").ForEach(func(_, value gjson.Result) bool {
+					sFlvUrl := value.Get("sFlvUrl").String()
+					sFlvUrlSuffix := value.Get("sFlvUrlSuffix").String()
+					sHlsUrl := value.Get("sHlsUrl").String()
+					sHlsUrlSuffix := value.Get("sHlsUrlSuffix").String()
+					sStreamName := value.Get("sStreamName").String()
+					sCdnType := value.Get("sCdnType").String()
+					sFlvAntiCode := value.Get("sFlvAntiCode").String()
+					sHlsAntiCode := value.Get("sHlsAntiCode").String()
+					if sFlvUrl != "" {
+						streamInfo["flv"].(map[string]string)[cdnType[sCdnType]] = sFlvUrl + "/" + sStreamName + "." + sFlvUrlSuffix + "?" + processAntiCode(sFlvAntiCode, uid, sStreamName)
+					}
+					if sHlsUrl != "" {
+						streamInfo["hls"].(map[string]string)[cdnType[sCdnType]] = sHlsUrl + "/" + sStreamName + "." + sHlsUrlSuffix + "?" + processAntiCode(sHlsAntiCode, uid, sStreamName)
+					}
+					return true
+				})
+				if h.Type == "display" {
+					h5info = streamInfo
+				} else {
+					for k, v := range streamInfo {
+						if k == h.Media {
+							if urlarr, ok := v.(map[string]string); ok {
+								for k, v := range urlarr {
+									if k == h.Cdn {
+										h5info = strings.Replace(v, "http://", "https://", 1)
+									}
+								}
+							}
+						}
+					}
+				}
+				return false
+			}
+			return true
+		})
+		return h5info
 	}
 
 	return nil
