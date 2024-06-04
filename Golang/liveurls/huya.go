@@ -135,7 +135,6 @@ func processAntiCode(antiCode string, uid int, streamName string) string {
 func format(jsonStr string, uid int) map[string]any {
 	cdnType := map[string]string{"HY": "hycdn", "AL": "alicdn", "TX": "txcdn", "HW": "hwcdn", "HS": "hscdn", "WS": "wscdn"}
 	ojsonStr := gjson.Get(jsonStr, "roomInfo.tLiveInfo.tLiveStreamInfo.vStreamInfo").String()
-	fmt.Println(gjson.Get(ojsonStr, "value"))
 	qreg := regexp.MustCompile(`(?i){"_proto"[\s\S]*?"value":([\s\S]*),"_classname"`)
 	qres := qreg.FindStringSubmatch(ojsonStr)
 	gjson.Parse(qres[1]).ForEach(func(_, value gjson.Result) bool {
