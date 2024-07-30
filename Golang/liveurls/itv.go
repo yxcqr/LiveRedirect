@@ -215,7 +215,7 @@ var (
 	}
 
 	dnsCache     = sync.Map{}
-	cacheTimeout = 1 * time.Minute
+	cacheTimeout = 1 * time.Millisecond
 )
 
 type cacheEntry struct {
