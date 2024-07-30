@@ -1,10 +1,3 @@
-// Package Golang
-// @Time:2024/02/19 11:30
-// @File:main.go
-// @SoftWare:Goland
-// @Author:feiyang
-// @Contact:TG@feiyangdigital
-
 package main
 
 import (
@@ -12,6 +5,7 @@ import (
 	"Golang/liveurls"
 	"encoding/base64"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/forgoer/openssl"
 	"github.com/gin-gonic/gin"
@@ -52,7 +46,7 @@ func getLivePrefix(c *gin.Context) string {
 	return realUrl
 }
 
-func setupRouter(adurl string) *gin.Engine {
+func setupRouter(adurl string, enableTV bool) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
@@ -62,6 +56,17 @@ func setupRouter(adurl string) *gin.Engine {
 
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "请求成功！")
+	})
+
+	r.GET("/tv.m3u", func(c *gin.Context) {
+		if enableTV {
+			itvm3uobj := &list.Tvm3u{}
+			c.Writer.Header().Set("Content-Type", "application/octet-stream")
+			c.Writer.Header().Set("Content-Disposition", "attachment; filename=tv.m3u")
+			itvm3uobj.GetTvM3u(c)
+		} else {
+			c.String(http.StatusForbidden, "公共服务不提供TV直播")
+		}
 	})
 
 	r.GET("/huyayqk.m3u", func(c *gin.Context) {
@@ -138,7 +143,31 @@ func setupRouter(adurl string) *gin.Engine {
 	r.GET("/:path/:rid", func(c *gin.Context) {
 		path := c.Param("path")
 		rid := c.Param("rid")
+		ts := c.Query("ts")
 		switch path {
+		case "itv":
+			if enableTV {
+				itvobj := &liveurls.Itv{}
+				cdn := c.Query("cdn")
+				if ts == "" {
+					itvobj.HandleMainRequest(c, cdn, rid)
+				} else {
+					itvobj.HandleTsRequest(c, ts)
+				}
+			} else {
+				c.String(http.StatusForbidden, "公共服务不提供TV直播")
+			}
+		case "ysptp":
+			if enableTV {
+				ysptpobj := &liveurls.Ysptp{}
+				if ts == "" {
+					ysptpobj.HandleMainRequest(c, rid)
+				} else {
+					ysptpobj.HandleTsRequest(c, ts, c.Query("wsTime"))
+				}
+			} else {
+				c.String(http.StatusForbidden, "公共服务不提供TV直播")
+			}
 		case "douyin":
 			douyinobj := &liveurls.Douyin{}
 			douyinobj.Rid = rid
@@ -183,9 +212,12 @@ func setupRouter(adurl string) *gin.Engine {
 }
 
 func main() {
+	tvEnabled := flag.Bool("tv", true, "Enable TV routes")
+	flag.Parse()
+
 	key := []byte("6354127897263145")
 	defstr, _ := base64.StdEncoding.DecodeString("NGrrC9lxtd9O7ezMt3Ux2WfX+HyCyepe9vDuhbSWVa8c+s7oFKbxuExfT4M/e4qvEgsUsvtceDWCYZ5+a7iKCEI/sps5jzGuWJNmsFnaFmQ=")
 	defurl, _ := openssl.AesECBDecrypt(defstr, key, openssl.PKCS7_PADDING)
-	r := setupRouter(string(defurl))
+	r := setupRouter(string(defurl), *tvEnabled)
 	r.Run(":35455")
 }
