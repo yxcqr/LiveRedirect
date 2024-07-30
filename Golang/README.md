@@ -17,7 +17,7 @@ chmod 777 allinone && ./allinone
 建议搭配进程守护工具进行使用，windows直接双击运行！
 ## 三、详细使用方法
 ## **Ysptp和Itv聚合M3U获取：**
-**声明：如果你是在公网服务器部署，不愿意开启聚合TV直播服务，在运行裸程序或者Docker时，加上参数 -tv=false 即可不开启直播服务！**
+**声明：如果你是在公网服务器部署，不愿意开启聚合TV直播服务，在运行裸程序或者Docker时，加上参数 -tv=false 即可不开启直播服务，具体可[点击参考命令范例](https://t.me/feiyangofficalchannel/922)**
 ```
 http://你的IP:35455/tv.m3u
 ```
