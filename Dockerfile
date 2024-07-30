@@ -12,4 +12,4 @@ COPY --from=build /allinone /allinone
 
 EXPOSE 35455
 
-CMD [ "/allinone" ]
+ENTRYPOINT [ "/allinone" ]
