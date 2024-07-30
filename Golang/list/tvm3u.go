@@ -396,7 +396,7 @@ func (t *Tvm3u) GetTvM3u(c *gin.Context) {
 	fmt.Fprintln(c.Writer, "http://"+c.Request.Host+"/itv/9001547084732463424.m3u8?cdn=bestzb")
 	fmt.Fprintln(c.Writer, "#EXTINF:-1,tvg-id=\"SITV欢笑剧场\" tvg-name=\"SITV欢笑剧场\" tvg-logo=\"https://epg.v1.mk/logo/SITV欢笑剧场.png\" group-title=\"其他\",SiTV-欢笑剧场")
 	fmt.Fprintln(c.Writer, "http://"+c.Request.Host+"/itv/5000000002000009455.m3u8?cdn=bestzb")
-	fmt.Fprintln(c.Writer, "#EXTINF:-1,tvg-id=\"SITV欢笑剧场\" tvg-name=\"SITV欢笑剧场\" tvg-logo=\"https://epg.v1.mk/logo/SITV欢笑剧场.png\" group-title=\"其他\",SiTV-欢笑剧场-4K")
+	fmt.Fprintln(c.Writer, "#EXTINF:-1,tvg-id=\"SITV欢笑剧场\" tvg-name=\"SITV欢笑剧场\" tvg-logo=\"https://epg.v1.mk/logo/SITV欢笑剧场.png\" group-title=\"4K频道\",SiTV-欢笑剧场-4K")
 	fmt.Fprintln(c.Writer, "http://"+c.Request.Host+"/itv/5000000007000010001.m3u8?cdn=bestzb")
 	fmt.Fprintln(c.Writer, "#EXTINF:-1,tvg-id=\"SITV金色学堂\" tvg-name=\"SITV金色学堂\" tvg-logo=\"https://epg.v1.mk/logo/SITV金色学堂.png\" group-title=\"其他\",SiTV-金色学堂")
 	fmt.Fprintln(c.Writer, "http://"+c.Request.Host+"/itv/5000000010000026105.m3u8?cdn=bestzb")
