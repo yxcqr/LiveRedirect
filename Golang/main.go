@@ -15,6 +15,18 @@ import (
 	"time"
 )
 
+type BiliResponse struct {
+	Data struct {
+		HasMore int `json:"has_more"`
+		List    []struct {
+			Face       string `json:"face"`
+			ParentName string `json:"parent_name"`
+			Uname      string `json:"uname"`
+			RoomID     int    `json:"roomid"`
+		} `json:"list"`
+	} `json:"data"`
+}
+
 func duanyan(adurl string, realurl any) string {
 	var liveurl string
 	if str, ok := realurl.(string); ok {
@@ -67,6 +79,32 @@ func setupRouter(adurl string, enableTV bool) *gin.Engine {
 		} else {
 			c.String(http.StatusForbidden, "公共服务不提供TV直播")
 		}
+	})
+
+	r.GET("/bililive.m3u", func(c *gin.Context) {
+		bilim3uobj := &list.BiliM3u{}
+		c.Writer.Header().Set("Content-Type", "application/octet-stream")
+		c.Writer.Header().Set("Content-Disposition", "attachment; filename=bililive.m3u")
+		getTestVideoUrl(c)
+		i := 1
+		for {
+			reqUrl := fmt.Sprintf("https://api.live.bilibili.com/xlive/web-interface/v1/second/getList?platform=web&parent_area_id=10&area_id=0&sort_type=sort_type_269&page=%d", i)
+			apiRes, _ := bilim3uobj.Bilibili(reqUrl)
+
+			var biliRes BiliResponse
+			json.Unmarshal([]byte(apiRes), &biliRes)
+
+			for _, value := range biliRes.Data.List {
+				fmt.Fprintf(c.Writer, "#EXTINF:-1 tvg-logo=\"%s\" group-title=\"%s\", %s\n", value.Face, value.ParentName, value.Uname)
+				fmt.Fprintf(c.Writer, "%s/bilibili/%d\n", getLivePrefix(c), value.RoomID)
+			}
+
+			if biliRes.Data.HasMore != 1 {
+				break
+			}
+			i++
+		}
+
 	})
 
 	r.GET("/huyayqk.m3u", func(c *gin.Context) {
