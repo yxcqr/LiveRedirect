@@ -21,7 +21,11 @@ chmod 777 allinone && ./allinone
 ```
 http://你的IP:35455/tv.m3u
 ```
-## **虎牙、斗鱼、YY实时M3U获取：**
+## **BiliBili、虎牙、斗鱼、YY实时M3U获取：**
+### BiliBili生活：
+```
+http://你的IP:35455/bililive.m3u
+```
 ### 虎牙一起看：
 ```
 http://你的IP:35455/huyayqk.m3u
