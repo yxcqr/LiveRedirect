@@ -58,63 +58,27 @@ func (b *BiliBili) GetPlayUrl() any {
 		return nil
 	}
 	client := &http.Client{}
-	params := map[string]string{
-		"room_id":  roomid,
-		"protocol": "0,1",
-		"format":   "0,1,2",
-		"codec":    "0,1",
-		"qn":       b.Quality,
-		"platform": b.Platform,
-		"ptype":    "8",
-	}
-	r, _ := http.NewRequest("GET", "https://api.live.bilibili.com/xlive/web-room/v2/index/getRoomPlayInfo", nil)
-	q := r.URL.Query()
-	for k, v := range params {
-		q.Add(k, v)
-	}
-	r.URL.RawQuery = q.Encode()
+	r, _ := http.NewRequest("GET", "https://api.live.bilibili.com/room/v1/Room/playUrl?cid="+roomid+"&platform="+b.Platform+"&otype=json&quality="+b.Quality, nil)
 	resp, _ := client.Do(r)
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
-	var json = string(body)
-	value := gjson.Get(json, "data.playurl_info.playurl.stream")
-	value.ForEach(func(key, value gjson.Result) bool {
-		newvalue := gjson.Get(value.String(), "format.0.format_name")
-		if newvalue.String() == "ts" {
-			nnvalue := gjson.Get(value.String(), "format.#")
-			valuelast := fmt.Sprintf("%v", nnvalue.Int()-1)
-			codeclen := gjson.Get(value.String(), "format."+valuelast+".codec.#")
-			codeclast := fmt.Sprintf("%v", codeclen.Int()-1)
-			base_url := gjson.Get(value.String(), "format."+valuelast+".codec."+codeclast+".base_url")
-			url_info := gjson.Get(value.String(), "format."+valuelast+".codec."+codeclast+".url_info")
-			url_info.ForEach(func(key, value gjson.Result) bool {
-				keyval := fmt.Sprintf("%v", key)
-				switch b.Line {
-				case "first":
-					if keyval == "0" {
-						host := gjson.Get(value.String(), "host")
-						extra := gjson.Get(value.String(), "extra")
-						realurl = fmt.Sprintf("%v%v%v", host, base_url, extra)
-					}
+	var jsonStr = string(body)
+	if gjson.Get(jsonStr, "code").Int() != 0 {
+		return nil
+	}
+	durls := gjson.Get(jsonStr, "data.durl").Array()
 
-				case "second":
-					if keyval == "1" {
-						host := gjson.Get(value.String(), "host")
-						extra := gjson.Get(value.String(), "extra")
-						realurl = fmt.Sprintf("%v%v%v", host, base_url, extra)
-					}
-				case "third":
-					if keyval == "2" {
-						host := gjson.Get(value.String(), "host")
-						extra := gjson.Get(value.String(), "extra")
-						realurl = fmt.Sprintf("%v%v%v", host, base_url, extra)
-					}
-				}
-
-				return true
-			})
+	for i, durl := range durls {
+		switch b.Line {
+		case "first":
+			if i == 0 {
+				realurl = durl.Get("url").String()
+			}
+		case "second":
+			if i == 1 {
+				realurl = durl.Get("url").String()
+			}
 		}
-		return true
-	})
+	}
 	return realurl
 }
