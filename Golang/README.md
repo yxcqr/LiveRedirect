@@ -55,8 +55,8 @@ http://你的IP:35455/douyu/xxxxx(?stream=flv)
 ## **BiliBili`(live.bilibili.com/)xxxxxx`：**
 ### 1，平台platform参数选择（默认web，如果有问题，可以切换h5平台）：
 ```
-"web"   => "桌面端"
-"h5"    => "h5端"
+"flv"   => "FLV"
+"hls"    => "M3U8"
 ```
 ### 2，线路line参数选择（默认线路二，如果卡顿/看不了，请切换线路一或者三，一般直播间只会提供两条线路，所以建议线路一/二之间切换）：
 ```
@@ -71,7 +71,7 @@ http://你的IP:35455/douyu/xxxxx(?stream=flv)
 ```
 ### 4，最后的代理链接示例：
 ```
-http://你的IP:35455/bilibili/xxxxxx(?platform=h5&line=first&quality=10000)
+http://你的IP:35455/bilibili/xxxxxx(?platform=hls&line=first&quality=4)
 ```
 ## **虎牙`(huya.com/)xxxxxx`：**  
 ### 1，查看可用CDN：
