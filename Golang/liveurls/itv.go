@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -214,8 +215,8 @@ var (
 		"wasusyt/6000000006000030630.m3u8":     "http://gslbserv.itv.cmvideo.cn:80/6000000006000030630/1.m3u8?channel-id=wasusyt&Contentid=6000000006000030630&livemode=1&stbId=3",
 	}
 
-	dnsCache     = sync.Map{}
-	cacheTimeout = 1 * time.Millisecond
+	dnsCache         = sync.Map{}
+	successCacheTime = 24 * time.Hour
 )
 
 type cacheEntry struct {
@@ -225,13 +226,13 @@ type cacheEntry struct {
 
 func (i *Itv) HandleMainRequest(c *gin.Context, cdn, id string) {
 	key := cdn + "/" + id
-	url, ok := programList[key]
+	startUrl, ok := programList[key]
 	if !ok {
 		c.String(http.StatusNotFound, "id not found!")
 		return
 	}
 
-	data, redirectURL, err := getHTTPResponse(url)
+	data, redirectURL, err := getHTTPResponse(startUrl)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -308,6 +309,11 @@ func getHTTPResponse(requestURL string) (string, string, error) {
 		return "", "", err
 	}
 
+	// 调整缓存时间：仅在成功获取内容时缓存24小时
+	if resp.StatusCode == http.StatusOK {
+		updateCacheTime(requestURL, successCacheTime)
+	}
+
 	return body, redirectURL, nil
 }
 
@@ -327,8 +333,26 @@ func resolveIP(host string) string {
 	}
 
 	ip := ips[0].String()
-	dnsCache.Store(host, cacheEntry{ip: ip, expiry: now.Add(cacheTimeout)})
+	// 初始缓存时间为0，以确保在成功请求后再更新缓存
+	dnsCache.Store(host, cacheEntry{ip: ip, expiry: now})
 	return ip
+}
+
+func updateCacheTime(requestURL string, duration time.Duration) {
+	host := extractHost(requestURL)
+	if entry, found := dnsCache.Load(host); found {
+		cachedEntry := entry.(cacheEntry)
+		cachedEntry.expiry = time.Now().Add(duration)
+		dnsCache.Store(host, cachedEntry)
+	}
+}
+
+func extractHost(requestURL string) string {
+	parsedURL, err := url.Parse(requestURL)
+	if err != nil {
+		return ""
+	}
+	return parsedURL.Host
 }
 
 func readResponseBody(resp *http.Response) (string, error) {
