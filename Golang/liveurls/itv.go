@@ -13,8 +13,7 @@ import (
 	"time"
 )
 
-type Itv struct {
-}
+type Itv struct{}
 
 var (
 	hostMappings = map[string]string{
@@ -226,13 +225,13 @@ type cacheEntry struct {
 
 func (i *Itv) HandleMainRequest(c *gin.Context, cdn, id string) {
 	key := cdn + "/" + id
-	startUrl, ok := programList[key]
+	url, ok := programList[key]
 	if !ok {
 		c.String(http.StatusNotFound, "id not found!")
 		return
 	}
 
-	data, redirectURL, err := getHTTPResponse(startUrl)
+	data, redirectURL, err := getHTTPResponse(url)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -295,6 +294,7 @@ func getHTTPResponse(requestURL string) (string, string, error) {
 
 	resp, err := client.Get(requestURL)
 	if err != nil {
+		clearCache(requestURL) // 清除缓存失败的IP
 		return "", "", err
 	}
 	defer resp.Body.Close()
@@ -306,6 +306,7 @@ func getHTTPResponse(requestURL string) (string, string, error) {
 
 	body, err := readResponseBody(resp)
 	if err != nil {
+		clearCache(requestURL) // 清除缓存失败的IP
 		return "", "", err
 	}
 
@@ -333,7 +334,6 @@ func resolveIP(host string) string {
 	}
 
 	ip := ips[0].String()
-	// 初始缓存时间为0，以确保在成功请求后再更新缓存
 	dnsCache.Store(host, cacheEntry{ip: ip, expiry: now})
 	return ip
 }
@@ -345,6 +345,11 @@ func updateCacheTime(requestURL string, duration time.Duration) {
 		cachedEntry.expiry = time.Now().Add(duration)
 		dnsCache.Store(host, cachedEntry)
 	}
+}
+
+func clearCache(requestURL string) {
+	host := extractHost(requestURL)
+	dnsCache.Delete(host)
 }
 
 func extractHost(requestURL string) string {
