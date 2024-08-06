@@ -225,13 +225,13 @@ type cacheEntry struct {
 
 func (i *Itv) HandleMainRequest(c *gin.Context, cdn, id string) {
 	key := cdn + "/" + id
-	url, ok := programList[key]
+	startUrl, ok := programList[key]
 	if !ok {
 		c.String(http.StatusNotFound, "id not found!")
 		return
 	}
 
-	data, redirectURL, err := getHTTPResponse(url)
+	data, redirectURL, err := getHTTPResponse(startUrl)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
