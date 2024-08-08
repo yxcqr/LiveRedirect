@@ -7,7 +7,7 @@ docker run -d --restart unless-stopped --privileged=true -p 35455:35455 --name a
 ```
 ### 2，一键配置watchtower每天凌晨两点自动监听allinone镜像更新，同步GitHub仓库：
 ```
-docker run -d --name watchtower --restart unless-stopped -v /var/run/docker.sock:/var/run/docker.sock  containrrr/watchtower -c  --schedule "0 0 2 * * *"
+docker run -d --name watchtower --restart unless-stopped -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower allinone -c --schedule "0 0 2 * * *"
 ```
 ## 二、直接运行：
 首先去action中下载对应平台二进制执行文件，然后解压并直接执行
