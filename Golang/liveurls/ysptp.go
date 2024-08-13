@@ -86,20 +86,42 @@ func getURL(id, url, uid, path string) string {
 	bstrURL := "https://ytpvdn.cctv.cn/cctvmobileinf/rest/cctv/videoliveUrl/getstream"
 	postData := `appcommon={"ap":"cctv_app_tv","an":"央视投屏助手","adid":" ` + uid + `","av":"1.1.7"}&url=` + url
 
-	req, _ := http.NewRequest("POST", bstrURL, strings.NewReader(postData))
+	req, err := http.NewRequest("POST", bstrURL, strings.NewReader(postData))
+	if err != nil {
+		// 处理请求创建错误
+		return ""
+	}
 	req.Header.Set("User-Agent", "cctv_app_tv")
 	req.Header.Set("Referer", "api.cctv.cn")
 	req.Header.Set("UID", uid)
 
 	client := &http.Client{}
-	resp, _ := client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		// 处理请求错误
+		return ""
+	}
 	defer resp.Body.Close()
+
 	var body strings.Builder
-	_, _ = io.Copy(&body, resp.Body)
+	_, err = io.Copy(&body, resp.Body)
+	if err != nil {
+		// 处理读取响应体错误
+		return ""
+	}
 
 	var result map[string]interface{}
-	json.Unmarshal([]byte(body.String()), &result)
-	playURL := result["url"].(string)
+	err = json.Unmarshal([]byte(body.String()), &result)
+	if err != nil {
+		// 处理 JSON 解析错误
+		return ""
+	}
+
+	playURL, ok := result["url"].(string)
+	if !ok || playURL == "" {
+		// 处理类型断言或 URL 为空的情况
+		return ""
+	}
 
 	setCache(cacheKey, playURL)
 
@@ -109,15 +131,28 @@ func getURL(id, url, uid, path string) string {
 func fetchData(playURL, path, uid string) string {
 	client := &http.Client{}
 	for {
-		req, _ := http.NewRequest("GET", playURL, nil)
+		req, err := http.NewRequest("GET", playURL, nil)
+		if err != nil {
+			// 处理请求创建错误
+			return ""
+		}
 		req.Header.Set("User-Agent", "cctv_app_tv")
 		req.Header.Set("Referer", "api.cctv.cn")
 		req.Header.Set("UID", uid)
 
-		resp, _ := client.Do(req)
+		resp, err := client.Do(req)
+		if err != nil {
+			// 处理请求错误
+			return ""
+		}
 		defer resp.Body.Close()
+
 		var body strings.Builder
-		_, _ = io.Copy(&body, resp.Body)
+		_, err = io.Copy(&body, resp.Body)
+		if err != nil {
+			// 处理读取响应体错误
+			return ""
+		}
 
 		data := body.String()
 		re := regexp.MustCompile(`(.*\.m3u8\?.*)`)
@@ -131,7 +166,11 @@ func fetchData(playURL, path, uid string) string {
 }
 
 func getTs(url string) string {
-	req, _ := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		// 处理请求创建错误
+		return ""
+	}
 	req.Header.Set("User-Agent", "cctv_app_tv")
 	req.Header.Set("Referer", "https://api.cctv.cn/")
 	req.Header.Set("UID", "1234123122")
@@ -141,18 +180,27 @@ func getTs(url string) string {
 	req.Header.Set("Connection", "keep-alive")
 
 	client := &http.Client{}
-	resp, _ := client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		// 处理请求错误
+		return ""
+	}
 	defer resp.Body.Close()
+
 	var body strings.Builder
-	_, _ = io.Copy(&body, resp.Body)
+	_, err = io.Copy(&body, resp.Body)
+	if err != nil {
+		// 处理读取响应体错误
+		return ""
+	}
 
 	return body.String()
 }
 
 func getCache(key string) (string, bool) {
 	if item, found := cache.Load(key); found {
-		cacheItem := item.(CacheItem)
-		if time.Now().Unix() < cacheItem.Expiration {
+		cacheItem, ok := item.(CacheItem)
+		if ok && time.Now().Unix() < cacheItem.Expiration {
 			return cacheItem.Value, true
 		}
 	}
