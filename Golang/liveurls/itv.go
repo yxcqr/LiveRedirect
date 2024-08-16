@@ -21,6 +21,7 @@ var (
 		"cache.ott.wasulive.itv.cmvideo.cn":  "feiyangdigital.tg.wasulive.ottdns.com",
 		"cache.ott.fifalive.itv.cmvideo.cn":  "feiyangdigital.tg.fifalive.ottdns.com",
 		"cache.ott.hnbblive.itv.cmvideo.cn":  "feiyangdigital.tg.hnbblive.ottdns.com",
+		"zqhswlive.itv.cmvideo.cn":           "feiyangdigital.tg.zqhswlive.ottdns.com",
 	}
 	programList = map[string]string{
 		"wasusyt/6000000001000029752.m3u8":     "http://gslbserv.itv.cmvideo.cn:80/6000000001000029752/1.m3u8?channel-id=wasusyt&Contentid=6000000001000029752&livemode=1&stbId=3",
@@ -246,6 +247,28 @@ var (
 		"ystenlive/1000000006000270004.m3u8":   "http://gslbserv.itv.cmvideo.cn:80/1000000006000270004/1.m3u8?channel-id=ystenlive&Contentid=1000000006000270004&livemode=1&stbId=3",
 		"ystenlive/1000000006000270005.m3u8":   "http://gslbserv.itv.cmvideo.cn:80/1000000006000270005/1.m3u8?channel-id=ystenlive&Contentid=1000000006000270005&livemode=1&stbId=3",
 		"ystenlive/1000000006000270006.m3u8":   "http://gslbserv.itv.cmvideo.cn:80/1000000006000270006/1.m3u8?channel-id=ystenlive&Contentid=1000000006000270006&livemode=1&stbId=3",
+		"FifastbLive/3000000010000000097.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000000097&livemode=1&stbId=3",
+		"FifastbLive/3000000010000002019.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000002019&livemode=1&stbId=3",
+		"FifastbLive/3000000010000002809.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000002809&livemode=1&stbId=3",
+		"FifastbLive/3000000010000003915.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000003915&livemode=1&stbId=3",
+		"FifastbLive/3000000010000004193.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000004193&livemode=1&stbId=3",
+		"FifastbLive/3000000010000006077.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000006077&livemode=1&stbId=3",
+		"FifastbLive/3000000010000006658.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000006658&livemode=1&stbId=3",
+		"FifastbLive/3000000010000009788.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000009788&livemode=1&stbId=3",
+		"FifastbLive/3000000010000010833.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000010833&livemode=1&stbId=3",
+		"FifastbLive/3000000010000011297.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000011297&livemode=1&stbId=3",
+		"FifastbLive/3000000010000011518.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000011518&livemode=1&stbId=3",
+		"FifastbLive/3000000010000012558.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000012558&livemode=1&stbId=3",
+		"FifastbLive/3000000010000012616.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000012616&livemode=1&stbId=3",
+		"FifastbLive/3000000010000015470.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000015470&livemode=1&stbId=3",
+		"FifastbLive/3000000010000015560.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000015560&livemode=1&stbId=3",
+		"FifastbLive/3000000010000017678.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000017678&livemode=1&stbId=3",
+		"FifastbLive/3000000010000019839.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000019839&livemode=1&stbId=3",
+		"FifastbLive/3000000010000021904.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000021904&livemode=1&stbId=3",
+		"FifastbLive/3000000010000023434.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000023434&livemode=1&stbId=3",
+		"FifastbLive/3000000010000025380.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000025380&livemode=1&stbId=3",
+		"FifastbLive/3000000010000027691.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000027691&livemode=1&stbId=3",
+		"FifastbLive/3000000010000031669.m3u8": "http://gslbservzqhsw.itv.cmvideo.cn/index.m3u8?channel-id=FifastbLive&Contentid=3000000010000031669&livemode=1&stbId=3",
 	}
 
 	dnsCache         = sync.Map{}
