@@ -81,6 +81,17 @@ func setupRouter(adurl string, enableTV bool) *gin.Engine {
 		}
 	})
 
+	r.GET("/gdcucc.m3u", func(c *gin.Context) {
+		if enableTV {
+			itvm3uobj := &list.Gdm3u{}
+			c.Writer.Header().Set("Content-Type", "application/octet-stream")
+			c.Writer.Header().Set("Content-Disposition", "attachment; filename=gdcucc.m3u")
+			itvm3uobj.GetGdm3u(c)
+		} else {
+			c.String(http.StatusForbidden, "公共服务不提供TV直播")
+		}
+	})
+
 	r.GET("/bililive.m3u", func(c *gin.Context) {
 		bilim3uobj := &list.BiliM3u{}
 		c.Writer.Header().Set("Content-Type", "application/octet-stream")
@@ -183,6 +194,17 @@ func setupRouter(adurl string, enableTV bool) *gin.Engine {
 		rid := c.Param("rid")
 		ts := c.Query("ts")
 		switch path {
+		case "gdcucc":
+			if enableTV {
+				gdobj := &liveurls.Gdcucc{}
+				if ts == "" {
+					gdobj.HandleGdcuccMainRequest(c, rid)
+				} else {
+					gdobj.HandleGdcuccTsRequest(c, ts)
+				}
+			} else {
+				c.String(http.StatusForbidden, "公共服务不提供TV直播")
+			}
 		case "itv":
 			if enableTV {
 				itvobj := &liveurls.Itv{}
