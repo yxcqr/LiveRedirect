@@ -7,7 +7,7 @@ docker run -d --restart unless-stopped --privileged=true -p 35455:35455 --name a
 ```
 ### 2，一键配置watchtower每天凌晨两点自动监听allinone镜像更新，同步GitHub仓库：
 ```
-docker run -d --name watchtower --restart unless-stopped -v /var/run/docker.sock:/var/run/docker.sock  containrrr/watchtower -c  --schedule "0 0 2 * * *"
+docker run -d --name watchtower --restart unless-stopped -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower allinone -c --schedule "0 0 2 * * *"
 ```
 ## 二、直接运行：
 首先去action中下载对应平台二进制执行文件，然后解压并直接执行
@@ -21,7 +21,11 @@ chmod 777 allinone && ./allinone
 ```
 http://你的IP:35455/tv.m3u
 ```
-## **虎牙、斗鱼、YY实时M3U获取：**
+## **BiliBili、虎牙、斗鱼、YY实时M3U获取：**
+### BiliBili生活：
+```
+http://你的IP:35455/bililive.m3u
+```
 ### 虎牙一起看：
 ```
 http://你的IP:35455/huyayqk.m3u
@@ -51,8 +55,8 @@ http://你的IP:35455/douyu/xxxxx(?stream=flv)
 ## **BiliBili`(live.bilibili.com/)xxxxxx`：**
 ### 1，平台platform参数选择（默认web，如果有问题，可以切换h5平台）：
 ```
-"web"   => "桌面端"
-"h5"    => "h5端"
+"flv"   => "FLV"
+"hls"    => "M3U8"
 ```
 ### 2，线路line参数选择（默认线路二，如果卡顿/看不了，请切换线路一或者三，一般直播间只会提供两条线路，所以建议线路一/二之间切换）：
 ```
@@ -62,17 +66,12 @@ http://你的IP:35455/douyu/xxxxx(?stream=flv)
 ```
 ### 3，画质quality参数选择（默认原画，可以看什么画质去直播间看看，能选什么画质就能加什么参数，参数错误一定不能播放）：
 ```
-"30000" => "杜比"
-"20000" => "4K"
-"10000" => "原画"
-"400"   => "蓝光"
-"250"   => "超清"
-"150"   => "高清"
-"80"    => "流畅"
+"4" => "原画质"
+"3" => "低画质"
 ```
 ### 4，最后的代理链接示例：
 ```
-http://你的IP:35455/bilibili/xxxxxx(?platform=h5&line=first&quality=10000)
+http://你的IP:35455/bilibili/xxxxxx(?platform=hls&line=first&quality=4)
 ```
 ## **虎牙`(huya.com/)xxxxxx`：**  
 ### 1，查看可用CDN：
